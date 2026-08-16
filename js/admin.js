@@ -19,8 +19,98 @@ async function loadResults(){const event_id=$('participantEvent').value;if(!even
 $('participantEvent').onchange=loadResults;$('refreshResults').onclick=loadResults;$('exportCsv').onclick=()=>{if(!currentResults.length)return;const cols=['participant_name','school','class_name','email','score','correct_count','incorrect_count','certificate_number','submitted_at'];const csv=[cols.join(','),...currentResults.map(r=>cols.map(c=>`"${String(r[c]??'').replaceAll('"','""')}"`).join(','))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='hasil-posttest.csv';a.click()};
 function loadCertificateForm(){const id=$('certificateEvent').value,e=events.find(x=>x.id===id);if(!e)return;$('certificateTitle').value=e.certificate_title||'SERTIFIKAT PENGHARGAAN';$('recipientLabel').value=e.recipient_label||'Diberikan Kepada';$('participantRole').value=e.participant_role||'PESERTA';$('signerName').value=e.signer_name||'';$('signerPosition').value=e.signer_position||'';$('certificateNarrative').value=e.certificate_narrative||'Menyatakan bahwa yang bersangkutan telah mengikuti workshop "{WORKSHOP}" yang diselenggarakan oleh {ORGANIZER} di {LOCATION} pada tanggal {DATE}.';$('layoutJson').value=e.certificate_layout?JSON.stringify(e.certificate_layout,null,2):'';renderEventQr(e)}
 $('certificateEvent').onchange=loadCertificateForm;
-async function uploadAsset(file,eventCode,prefix){if(!file)return null;const ext=file.name.split('.').pop();const path=`${eventCode}/${prefix}-${Date.now()}.${ext}`;const {error}=await sb.storage.from('certificate-assets').upload(path,file,{upsert:true});if(error)throw error;return sb.storage.from('certificate-assets').getPublicUrl(path).data.publicUrl}
-$('saveCertificate').onclick=async()=>{const id=$('certificateEvent').value,e=events.find(x=>x.id===id);if(!e)return;try{const templateUrl=await uploadAsset($('templateFile').files[0],e.event_code,'template');const signatureUrl=await uploadAsset($('signatureFile').files[0],e.event_code,'signature');let layout=null;if($('layoutJson').value.trim())layout=JSON.parse($('layoutJson').value);const row={certificate_title:$('certificateTitle').value.trim(),recipient_label:$('recipientLabel').value.trim(),participant_role:$('participantRole').value.trim(),signer_name:$('signerName').value.trim(),signer_position:$('signerPosition').value.trim(),certificate_narrative:$('certificateNarrative').value.trim(),certificate_layout:layout};if(templateUrl)row.certificate_template_url=templateUrl;if(signatureUrl)row.signature_url=signatureUrl;const {error}=await sb.from('events').update(row).eq('id',id);if(error)throw error;alert('Setting sertifikat tersimpan.');await loadEvents()}catch(err){alert(err.message)}};
-$('previewCertificate').onclick=async()=>{const id=$('certificateEvent').value,e=events.find(x=>x.id===id);if(!e)return;let layout;try{layout=$('layoutJson').value.trim()?JSON.parse($('layoutJson').value):undefined}catch{alert('Layout JSON tidak valid');return}const data={templateUrl:e.certificate_template_url||'assets/template_upj_blue.png',participantName:'NAMA PESERTA CONTOH',workshopTitle:e.workshop_title||e.event_name,certificateTitle:$('certificateTitle').value,recipientLabel:$('recipientLabel').value,roleLabel:'Sebagai',participantRole:$('participantRole').value,narrative:$('certificateNarrative').value.replaceAll('{WORKSHOP}',e.workshop_title||'').replaceAll('{ORGANIZER}',e.organizer||'').replaceAll('{LOCATION}',e.location||'').replaceAll('{DATE}',e.event_date||''),signerName:$('signerName').value,signerPosition:$('signerPosition').value,signatureUrl:e.signature_url,certificateNumber:`CERT-${e.event_code}-0001`,verifyUrl:location.origin+location.pathname.replace('admin.html','verify.html')+'?code=DEMO',layout};await CertificateEngine.renderCertificate($('certificateCanvas'),data)};
+async function uploadAsset(file,eventCode,prefix){
+  if(!file)return null;
+
+  // Pastikan browser masih memiliki sesi authenticated.
+  const {data:{session},error:sessionError}=await sb.auth.getSession();
+  if(sessionError)throw new Error(`Gagal membaca sesi login: ${sessionError.message}`);
+  if(!session)throw new Error('Sesi admin tidak aktif. Silakan logout lalu login kembali.');
+
+  const rawExt=(file.name.split('.').pop()||'png').toLowerCase();
+  const ext=rawExt.replace(/[^a-z0-9]/g,'')||'png';
+
+  // Nama file selalu unik, sehingga TIDAK perlu upsert.
+  // upsert:true dapat memerlukan izin UPDATE/SELECT Storage tambahan.
+  const unique=(crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const safeEvent=String(eventCode||'event').replace(/[^a-zA-Z0-9_-]/g,'_');
+  const path=`${safeEvent}/${prefix}-${unique}.${ext}`;
+
+  const {error}=await sb.storage
+    .from('certificate-assets')
+    .upload(path,file,{
+      upsert:false,
+      contentType:file.type||undefined,
+      cacheControl:'3600'
+    });
+
+  if(error)throw new Error(`Upload ${prefix} gagal: ${error.message}`);
+
+  const {data:publicData}=sb.storage
+    .from('certificate-assets')
+    .getPublicUrl(path);
+
+  if(!publicData?.publicUrl)throw new Error(`URL publik ${prefix} gagal dibuat.`);
+
+  return publicData.publicUrl;
+}
+$('saveCertificate').onclick=async()=>{
+  const id=$('certificateEvent').value;
+  const e=events.find(x=>x.id===id);
+  if(!e)return;
+
+  const btn=$('saveCertificate');
+  const oldText=btn.textContent;
+  btn.disabled=true;
+
+  try{
+    btn.textContent='Upload template...';
+    const templateFile=$('templateFile').files[0];
+    const templateUrl=await uploadAsset(templateFile,e.event_code,'template');
+
+    btn.textContent='Upload tanda tangan...';
+    const signatureFile=$('signatureFile').files[0];
+    const signatureUrl=await uploadAsset(signatureFile,e.event_code,'signature');
+
+    let layout=null;
+    if($('layoutJson').value.trim()){
+      try{
+        layout=JSON.parse($('layoutJson').value);
+      }catch{
+        throw new Error('Layout JSON tidak valid.');
+      }
+    }
+
+    const row={
+      certificate_title:$('certificateTitle').value.trim(),
+      recipient_label:$('recipientLabel').value.trim(),
+      participant_role:$('participantRole').value.trim(),
+      signer_name:$('signerName').value.trim(),
+      signer_position:$('signerPosition').value.trim(),
+      certificate_narrative:$('certificateNarrative').value.trim(),
+      certificate_layout:layout
+    };
+
+    if(templateUrl)row.certificate_template_url=templateUrl;
+    if(signatureUrl)row.signature_url=signatureUrl;
+
+    btn.textContent='Menyimpan setting...';
+    const {error}=await sb.from('events').update(row).eq('id',id);
+    if(error)throw new Error(`Update event gagal: ${error.message}`);
+
+    alert('Setting sertifikat tersimpan.');
+    $('templateFile').value='';
+    $('signatureFile').value='';
+    await loadEvents();
+
+  }catch(err){
+    console.error('SAVE CERTIFICATE ERROR:',err);
+    alert(err?.message||String(err));
+  }finally{
+    btn.disabled=false;
+    btn.textContent=oldText;
+  }
+};
+$('previewCertificate').onclick=async()=>{const id=$('certificateEvent').value,e=events.find(x=>x.id===id);if(!e)return;let layout;try{layout=$('layoutJson').value.trim()?JSON.parse($('layoutJson').value):undefined}catch{alert('Layout JSON tidak valid');return}const data={templateUrl:e.certificate_template_url||'assets/template_upj_blue.png',participantName:'NAMA PESERTA CONTOH',workshopTitle:e.workshop_title||e.event_name,certificateTitle:$('certificateTitle').value,recipientLabel:$('recipientLabel').value,roleLabel:'Sebagai',participantRole:$('participantRole').value,narrative:$('certificateNarrative').value.replaceAll('{WORKSHOP}',e.workshop_title||'').replaceAll('{ORGANIZER}',e.organizer||'').replaceAll('{LOCATION}',e.location||'').replaceAll('{DATE}',CertificateEngine.formatDateId?CertificateEngine.formatDateId(e.event_date):(e.event_date||'')),signerName:$('signerName').value,signerPosition:$('signerPosition').value,signatureUrl:e.signature_url,certificateNumber:`CERT-${e.event_code}-0001`,verifyUrl:location.origin+location.pathname.replace('admin.html','verify.html')+'?code=DEMO',layout};await CertificateEngine.renderCertificate($('certificateCanvas'),data)};
 function renderEventQr(e){const q=$('eventQr');q.innerHTML='';const url=new URL('index.html',location.href);url.searchParams.set('event',e.event_code);new QRCode(q,{text:url.href,width:180,height:180});$('eventLink').textContent=url.href}
 boot();
