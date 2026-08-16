@@ -1,0 +1,13 @@
+:root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#697386;--primary:#1168d4;--danger:#c62828;--ok:#157347;--border:#dfe5ee}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.container{max-width:960px;margin:auto;padding:20px}.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 8px 26px rgba(25,45,80,.06)}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-weight:800;font-size:20px}.muted{color:var(--muted)}
+input,select,textarea,button{font:inherit} input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:#fff} textarea{min-height:90px}
+label{font-weight:650;font-size:14px;display:block;margin:12px 0 6px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+button,.btn{border:0;border-radius:10px;padding:11px 16px;background:var(--primary);color:#fff;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}.btn.secondary,button.secondary{background:#eef3fb;color:#20436d}.btn.danger,button.danger{background:var(--danger)}
+.hidden{display:none!important}.question{padding:16px;border:1px solid var(--border);border-radius:12px;margin:12px 0}.option{display:block;padding:10px;border:1px solid var(--border);border-radius:9px;margin:8px 0;cursor:pointer}.option input{width:auto;margin-right:8px}
+.progress{height:10px;background:#e8edf4;border-radius:20px;overflow:hidden}.progress>div{height:100%;background:var(--primary);width:0}.score{font-size:42px;font-weight:900}.ok{color:var(--ok)}.danger{color:var(--danger)}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}th{background:#f8fafc}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}.tab{background:#eef3fb;color:#20436d}.tab.active{background:var(--primary);color:#fff}.section{display:none}.section.active{display:block}
+#certificateCanvas{width:100%;height:auto;border:1px solid var(--border);border-radius:10px;background:white}.status{padding:10px 12px;border-radius:10px;background:#eef5ff}.small{font-size:12px}.right{text-align:right}
+@media(max-width:700px){.grid,.grid3{grid-template-columns:1fr}.container{padding:12px}.header{align-items:flex-start;flex-direction:column}}

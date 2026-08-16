@@ -1,0 +1,35 @@
+#SOAL
+TYPE=PG
+CATEGORY=AI
+PERTANYAAN=Apa kepanjangan dari AI?
+A=Artificial Intelligence
+B=Automatic Internet
+C=Artificial Integration
+D=Advanced Information
+JAWABAN=A
+BOBOT=1
+
+#SOAL
+TYPE=TF
+CATEGORY=DATABASE
+PERTANYAAN=MySQL merupakan salah satu sistem manajemen basis data.
+JAWABAN=TRUE
+BOBOT=1
+
+#SOAL
+TYPE=SHORT
+CATEGORY=DATABASE
+PERTANYAAN=Sebutkan bahasa query yang umum digunakan pada basis data relasional.
+JAWABAN=SQL|Structured Query Language
+BOBOT=1
+
+#SOAL
+TYPE=PG
+CATEGORY=UIUX
+PERTANYAAN=Tujuan utama UI/UX adalah?
+A=Membuat aplikasi sulit digunakan
+B=Meningkatkan pengalaman dan kemudahan pengguna
+C=Menambah ukuran file
+D=Menghapus database
+JAWABAN=B
+BOBOT=1
