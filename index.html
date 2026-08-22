@@ -1,9 +1,23 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Post-Test & Sertifikat</title><link rel="stylesheet" href="css/app.css"></head><body>
-<div class="container"><div class="header"><div><div class="brand">Event Post-Test & e-Certificate</div><div class="muted">Kode event: <b id="eventCode">-</b></div></div><a class="btn secondary" href="admin.html">Admin</a></div>
-<div id="message" class="card status hidden"></div>
-<div class="card"><h1 id="eventName">Memuat event...</h1><div id="eventMeta" class="muted"></div></div>
-<div id="identityCard" class="card hidden"><h2>Identitas Peserta</h2><form id="identityForm"><div class="grid"><div><label>Nama lengkap *</label><input id="name" required></div><div><label>Asal sekolah *</label><input id="school" required></div><div><label>Kelas</label><input id="className"></div><div><label>Email</label><input id="email" type="email"></div><div><label>No. HP</label><input id="phone"></div></div><p><button type="submit">Mulai Post-Test</button></p></form></div>
-<div id="testCard" class="card hidden"><div class="header"><div><h2>Post-Test</h2><div class="progress"><div id="progressBar"></div></div><div class="small muted">Terjawab: <span id="progressText"></span></div></div><div><b>Waktu:</b> <span id="timer">-</span></div></div><div id="questions"></div><button id="submitBtn">Submit Post-Test</button></div>
-<div id="resultCard" class="card hidden"><h2>Post-Test Selesai</h2><div class="score" id="score">0</div><div id="resultStatus"></div><div class="muted" id="correctInfo"></div><hr><h2>Sertifikat</h2><canvas id="certificateCanvas"></canvas><p><button id="downloadBtn">Download PDF</button></p></div>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event Interactive</title><link rel="stylesheet" href="css/app.css"></head><body>
+<div class="container participant-page">
+  <div class="header"><div><div class="brand" id="appTitle">Event Interactive</div><div class="muted">Kode event: <b id="eventCode">-</b></div></div></div>
+  <div id="message" class="card status hidden"></div>
+  <div id="eventCard" class="card"><h1 id="eventName">Memuat event...</h1><div id="eventMeta" class="muted"></div><div id="modeBadge" class="mode-badge"></div></div>
+
+  <div id="identityCard" class="card hidden"><h2 id="identityTitle">Identitas Peserta</h2><form id="identityForm"><div class="grid"><div><label>Nama lengkap *</label><input id="name" required autocomplete="name"></div><div><label>Asal sekolah *</label><input id="school" required></div><div id="classWrap"><label>Kelas</label><input id="className"></div><div><label>Email</label><input id="email" type="email"></div><div id="phoneWrap"><label>No. HP</label><input id="phone"></div></div><p><button id="identitySubmit" type="submit">Lanjutkan</button></p></form></div>
+
+  <div id="posttestCard" class="card hidden"><div class="header"><div><h2>Post-Test</h2><div class="progress"><div id="progressBar"></div></div><div class="small muted">Terjawab: <span id="progressText"></span></div></div><div><b>Waktu:</b> <span id="timer">-</span></div></div><div id="questions"></div><button id="submitBtn">Submit Post-Test</button></div>
+
+  <div id="quizLobby" class="quiz-screen hidden"><div class="quiz-panel"><div class="quiz-kicker">QUIZ ARENA</div><h1>Anda sudah masuk!</h1><div class="player-name" id="quizPlayerName"></div><div class="lobby-count"><span id="quizLobbyCount">0</span><small>pemain</small></div><p>Menunggu host memulai quiz...</p><div class="pulse-dots"><i></i><i></i><i></i></div></div></div>
+
+  <div id="quizPlay" class="quiz-screen hidden"><div class="quiz-topbar"><div>Soal <b id="quizQuestionNo">-</b></div><div class="quiz-score-pill">Skor <b id="quizScore">0</b></div><div class="quiz-clock" id="quizClock">20</div></div><div class="quiz-question-text" id="quizQuestionText"></div><div id="quizOptions" class="quiz-options"></div><div id="quizAnswered" class="quiz-answered hidden">Jawaban terkunci. Tunggu hasil...</div></div>
+
+  <div id="quizReveal" class="quiz-screen hidden"><div class="quiz-panel"><div id="quizRevealIcon" class="reveal-icon">✓</div><h1 id="quizRevealTitle">Benar!</h1><div class="points-pop" id="quizPoints">+0</div><div>Skor total: <b id="quizRevealScore">0</b></div><div>Posisi: <b id="quizRank">-</b></div><ol id="quizMiniLeaderboard" class="leaderboard"></ol></div></div>
+
+  <div id="quizFinished" class="quiz-screen hidden"><div class="quiz-panel"><div class="quiz-kicker">FINAL</div><h1>Quiz Selesai</h1><div class="podium-rank" id="finalRank">#-</div><div class="points-pop" id="finalScore">0 poin</div><ol id="finalLeaderboard" class="leaderboard"></ol></div></div>
+
+  <div id="securityWarning" class="security-warning hidden"><b>⚠ Quiz Security</b><div id="securityText"></div></div>
+
+  <div id="resultCard" class="card hidden"><h2 id="resultTitle">Selesai</h2><div id="scoreWrap"><div class="score" id="score">0</div><div id="resultStatus"></div><div class="muted" id="correctInfo"></div><hr></div><h2>Sertifikat</h2><canvas id="certificateCanvas"></canvas><p><button id="downloadBtn">Download PDF</button></p></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="js/config.js"></script><script src="js/supabase-client.js"></script><script src="js/certificate.js"></script><script src="js/participant.js"></script></body></html>
