@@ -1,11 +1,99 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin - Post-Test & Sertifikat</title><link rel="stylesheet" href="css/app.css"></head><body>
-<div class="container"><div class="header"><div><div class="brand">Admin Event Post-Test & e-Certificate</div><div class="muted">Kelola event, soal, peserta, dan sertifikat</div></div><a class="btn secondary" href="index.html">Halaman Peserta</a></div>
-<div id="loginCard" class="card"><h2>Login Admin</h2><form id="loginForm"><div class="grid"><div><label>Email</label><input id="adminEmail" type="email" required></div><div><label>Password</label><input id="adminPassword" type="password" required></div></div><p><button>Login</button></p></form><div id="loginMsg" class="muted"></div></div>
-<div id="adminApp" class="hidden"><div class="tabs card"><button class="tab active" data-tab="events">Event</button><button class="tab" data-tab="questions">Soal</button><button class="tab" data-tab="participants">Peserta & Hasil</button><button class="tab" data-tab="certificate">Sertifikat</button><button id="logoutBtn" class="secondary">Logout</button></div>
-<section id="events" class="section active"><div class="card"><div class="header"><h2>Daftar Event</h2><button id="newEventBtn">+ Event Baru</button></div><div class="table-wrap"><table><thead><tr><th>Kode</th><th>Nama Event</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="eventRows"></tbody></table></div></div>
-<div class="card"><h2 id="eventFormTitle">Buat / Edit Event</h2><form id="eventForm"><input type="hidden" id="eventId"><div class="grid"><div><label>Kode Event *</label><input id="eventCodeInput" required placeholder="OPENHOUSE-2026"></div><div><label>Nama Event *</label><input id="eventNameInput" required></div><div><label>Judul Workshop/Training *</label><input id="workshopTitle"></div><div><label>Penyelenggara</label><input id="organizer"></div><div><label>Tempat</label><input id="location"></div><div><label>Tanggal</label><input id="eventDate" type="date"></div><div><label>Jumlah soal per peserta</label><input id="questionCount" type="number" min="1" value="20"></div><div><label>Durasi (menit, 0=tanpa timer)</label><input id="durationMinutes" type="number" min="0" value="20"></div><div><label>Passing Grade</label><input id="passingGrade" type="number" min="0" max="100" value="60"></div><div><label>Status</label><select id="active"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div></div><label><input id="randomizeQuestions" type="checkbox" checked style="width:auto"> Acak soal</label><label><input id="randomizeOptions" type="checkbox" checked style="width:auto"> Acak pilihan jawaban</label><p><button type="submit">Simpan Event</button></p></form></div></section>
-<section id="questions" class="section"><div class="card"><h2>Upload Bank Soal dari TXT</h2><label>Pilih Event</label><select id="questionEvent"></select><label>File soal .txt</label><input id="questionFile" type="file" accept=".txt,text/plain"><p><button id="parseQuestionsBtn">Preview File</button> <button id="importQuestionsBtn" class="secondary" disabled>Import ke Supabase</button></p><div id="questionPreview"></div></div><div class="card"><h2>Bank Soal</h2><div id="questionStats" class="muted"></div><div class="table-wrap"><table><thead><tr><th>Tipe</th><th>Kategori</th><th>Pertanyaan</th><th>Bobot</th></tr></thead><tbody id="questionRows"></tbody></table></div></div></section>
-<section id="participants" class="section"><div class="card"><h2>Peserta & Hasil</h2><label>Pilih Event</label><select id="participantEvent"></select><p><button id="refreshResults">Refresh</button> <button id="exportCsv" class="secondary">Export CSV</button></p><div id="resultStats" class="grid3"></div><div class="table-wrap"><table><thead><tr><th>Nama</th><th>Sekolah</th><th>Nilai</th><th>Benar</th><th>Sertifikat</th><th>Submit</th></tr></thead><tbody id="resultRows"></tbody></table></div></div></section>
-<section id="certificate" class="section"><div class="card"><h2>Setting Sertifikat per Event</h2><label>Pilih Event</label><select id="certificateEvent"></select><div class="grid"><div><label>Judul Sertifikat</label><input id="certificateTitle" value="SERTIFIKAT PENGHARGAAN"></div><div><label>Label Penerima</label><input id="recipientLabel" value="Diberikan Kepada"></div><div><label>Peran</label><input id="participantRole" value="PESERTA"></div><div><label>Nama Penandatangan</label><input id="signerName"></div><div><label>Jabatan Penandatangan</label><input id="signerPosition"></div></div><label>Narasi Sertifikat</label><textarea id="certificateNarrative">Menyatakan bahwa yang bersangkutan telah mengikuti workshop "{WORKSHOP}" yang diselenggarakan oleh {ORGANIZER} di {LOCATION} pada tanggal {DATE}.</textarea><div class="grid"><div><label>Upload Template Background (PNG/JPG)</label><input id="templateFile" type="file" accept="image/png,image/jpeg"></div><div><label>Upload Tanda Tangan (PNG transparan disarankan)</label><input id="signatureFile" type="file" accept="image/png,image/jpeg"></div></div><label>Layout JSON (opsional/advanced)</label><textarea id="layoutJson" placeholder='Kosong = posisi default template slide 1'></textarea><p><button id="saveCertificate">Simpan Setting Sertifikat</button> <button id="previewCertificate" class="secondary">Preview</button></p><canvas id="certificateCanvas"></canvas></div><div class="card"><h2>QR Event</h2><div id="eventQr"></div><p id="eventLink" class="small"></p></div></section>
-</div></div>
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Event Multi-Mode V2</title><link rel="stylesheet" href="css/app.css"></head><body>
+<div class="container wide">
+  <div class="header"><div><div class="brand">Admin Event Multi-Mode V2</div><div class="muted">Quiz Realtime • Post-Test • Certificate Only</div></div><a class="btn secondary" href="index.html">Halaman Peserta</a></div>
+  <div id="loginCard" class="card"><h2>Login Admin</h2><form id="loginForm"><div class="grid"><div><label>Email</label><input id="adminEmail" type="email" required></div><div><label>Password</label><input id="adminPassword" type="password" required></div></div><p><button>Login</button></p></form><div id="loginMsg" class="muted"></div></div>
+
+  <div id="adminApp" class="hidden">
+    <div class="tabs card">
+      <button class="tab active" data-tab="events">Event</button>
+      <button class="tab" data-tab="questions">Soal</button>
+      <button class="tab" data-tab="participants">Peserta & Hasil</button>
+      <button class="tab" data-tab="quizlive">Quiz Live</button>
+      <button class="tab" data-tab="certificate">Sertifikat</button>
+      <button id="logoutBtn" class="secondary">Logout</button>
+    </div>
+
+    <section id="events" class="section active">
+      <div class="card"><div class="header"><h2>Daftar Event</h2><button id="newEventBtn">+ Event Baru</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Kode</th><th>Mode</th><th>Nama Event</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="eventRows"></tbody></table></div>
+      </div>
+      <div class="card"><h2>Buat / Edit Event</h2><form id="eventForm"><input type="hidden" id="eventId">
+        <div class="grid">
+          <div><label>Kode Event *</label><input id="eventCodeInput" required placeholder="OPENHOUSE-2026"></div>
+          <div><label>Mode Event *</label><select id="eventMode"><option value="QUIZ">Quiz Mode</option><option value="POSTTEST" selected>Post-Test Mode</option><option value="CERTIFICATE">Certificate Only</option></select></div>
+          <div><label>Nama Event *</label><input id="eventNameInput" required></div>
+          <div><label>Judul Workshop/Training</label><input id="workshopTitle"></div>
+          <div><label>Penyelenggara</label><input id="organizer"></div>
+          <div><label>Tempat</label><input id="location"></div>
+          <div><label>Tanggal</label><input id="eventDate" type="date"></div>
+          <div><label>Status</label><select id="active"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+        </div>
+
+        <div id="questionConfig" class="subcard">
+          <h3>Pengaturan Soal</h3><div class="grid">
+            <div><label>Bank soal tersedia</label><input id="availableQuestionCount" readonly value="0 soal"></div>
+            <div><label>Jumlah soal yang digunakan</label><input id="questionCount" type="number" min="1" value="1"><div class="small muted">Otomatis mengikuti bank soal setelah import; boleh dikurangi.</div></div>
+          </div>
+          <label><input id="randomizeQuestions" type="checkbox" checked class="inline-check"> Acak soal</label>
+          <label><input id="randomizeOptions" type="checkbox" checked class="inline-check"> Acak pilihan jawaban</label>
+        </div>
+
+        <div id="posttestConfig" class="subcard">
+          <h3>Post-Test</h3><div class="grid">
+            <div><label>Durasi (menit, 0 = tanpa timer)</label><input id="durationMinutes" type="number" min="0" value="20"></div>
+            <div><label>Passing Grade</label><input id="passingGrade" type="number" min="0" max="100" value="60"></div>
+          </div>
+        </div>
+
+        <div id="quizConfig" class="subcard hidden">
+          <h3>Quiz Mode</h3><div class="grid">
+            <div><label>Timer per soal (detik)</label><input id="quizQuestionSeconds" type="number" min="5" max="300" value="20"></div>
+            <div><label>Poin dasar jawaban benar</label><input id="quizBasePoints" type="number" min="0" value="500"></div>
+            <div><label>Bonus kecepatan maksimum</label><input id="quizSpeedBonus" type="number" min="0" value="500"></div>
+            <div><label>Musik / efek timer</label><select id="quizMusicEnabled"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+          </div>
+          <div class="security-panel"><h3>QUIZ SECURITY MODE</h3>
+            <div class="grid">
+              <div><label>Security Mode</label><select id="quizSecurityEnabled"><option value="true">ON</option><option value="false">OFF</option></select></div>
+              <div><label>Fullscreen wajib</label><select id="quizFullscreenRequired"><option value="true">ON</option><option value="false">OFF</option></select></div>
+              <div><label>Block Copy/Cut/Paste</label><select id="quizBlockClipboard"><option value="true">ON</option><option value="false">OFF</option></select></div>
+              <div><label>Block Klik Kanan</label><select id="quizBlockRightClick"><option value="true">ON</option><option value="false">OFF</option></select></div>
+              <div><label>Block Seleksi Teks</label><select id="quizBlockSelection"><option value="true">ON</option><option value="false">OFF</option></select></div>
+              <div><label>Deteksi Pindah Tab/Aplikasi</label><select id="quizDetectTabSwitch"><option value="true">ON</option><option value="false">OFF</option></select></div>
+              <div><label>Maksimum Pelanggaran</label><input id="quizMaxViolations" type="number" min="1" value="2"></div>
+              <div><label>Aksi saat batas tercapai</label><select id="quizViolationAction"><option value="ZERO_CURRENT">Nilai soal aktif = 0</option><option value="AUTO_FINISH">Auto Finish Quiz</option><option value="KICK">Kick Peserta</option><option value="WARNING">Warning saja</option></select></div>
+            </div>
+            <div class="small muted">Proteksi browser dapat mendeteksi halaman kehilangan fokus/fullscreen, tetapi tidak dapat mendeteksi perangkat kedua.</div>
+          </div>
+        </div>
+        <p><button type="submit">Simpan Event</button></p>
+      </form></div>
+
+      <div class="card"><h2>QR Code Peserta</h2><div class="grid"><div><div id="editEventQr"></div></div><div><label>Link Peserta</label><input id="editEventLink" readonly placeholder="Pilih/simpan event terlebih dahulu"><p><button id="copyEventLink" class="secondary" type="button">Copy Link</button> <button id="downloadEventQr" class="secondary" type="button">Download QR</button> <button id="openParticipantPage" class="secondary" type="button">Buka Halaman Peserta</button></p></div></div></div>
+    </section>
+
+    <section id="questions" class="section">
+      <div class="card"><h2>Upload Bank Soal dari TXT</h2><label>Pilih Event</label><select id="questionEvent"></select><label>File soal .txt</label><input id="questionFile" type="file" accept=".txt,text/plain"><p><button id="parseQuestionsBtn" type="button">Preview File</button> <button id="importQuestionsBtn" class="secondary" type="button" disabled>Import ke Supabase</button></p><div id="questionPreview"></div></div>
+      <div class="card"><h2>Bank Soal</h2><div id="questionStats" class="muted"></div><div class="table-wrap"><table><thead><tr><th>Tipe</th><th>Kategori</th><th>Pertanyaan</th><th>Bobot</th></tr></thead><tbody id="questionRows"></tbody></table></div></div>
+    </section>
+
+    <section id="participants" class="section">
+      <div class="card"><h2>Peserta & Hasil / Sertifikat</h2><label>Pilih Event</label><select id="participantEvent"></select><p><button id="refreshResults">Refresh</button> <button id="exportCsv" class="secondary">Export CSV</button></p><div id="resultStats" class="grid3"></div>
+        <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Sekolah</th><th>Nilai</th><th>Benar</th><th>Sertifikat</th><th>Submit</th><th>Aksi</th></tr></thead><tbody id="resultRows"></tbody></table></div>
+      </div>
+      <div id="reprintCard" class="card hidden"><div class="header"><h2>Reprint Sertifikat</h2><button id="closeReprint" class="secondary">Tutup</button></div><canvas id="reprintCanvas"></canvas><p><button id="downloadReprint">Download / Reprint PDF</button></p></div>
+    </section>
+
+    <section id="quizlive" class="section">
+      <div class="card"><h2>Quiz Live Host</h2><label>Pilih Event Quiz</label><select id="quizEvent"></select><p><button id="openQuizLobby">Buat / Buka Lobby</button> <button id="quizStart" class="secondary">Start Quiz</button> <button id="quizReveal" class="secondary">Reveal</button> <button id="quizNext" class="secondary">Next Question</button> <button id="quizFinish" class="danger">Finish</button></p><div id="quizHostStatus" class="status">Belum ada session.</div></div>
+      <div class="grid"><div class="card"><h2>Soal Aktif</h2><div id="hostQuestion" class="quiz-host-question muted">-</div><div class="quiz-timer-big" id="hostTimer">-</div><div id="hostDistribution"></div></div><div class="card"><h2>Leaderboard Realtime</h2><div id="hostPlayerCount" class="muted"></div><ol id="hostLeaderboard" class="leaderboard"></ol></div></div>
+    </section>
+
+    <section id="certificate" class="section">
+      <div class="card"><h2>Setting Sertifikat per Event</h2><label>Pilih Event</label><select id="certificateEvent"></select><div class="grid"><div><label>Judul Sertifikat</label><input id="certificateTitle" value="SERTIFIKAT PENGHARGAAN"></div><div><label>Label Penerima</label><input id="recipientLabel" value="Diberikan Kepada"></div><div><label>Peran</label><input id="participantRole" value="PESERTA"></div><div><label>Nama Penandatangan</label><input id="signerName"></div><div><label>Jabatan Penandatangan</label><input id="signerPosition"></div></div><label>Narasi Sertifikat</label><textarea id="certificateNarrative">Menyatakan bahwa yang bersangkutan telah mengikuti workshop "{WORKSHOP}" yang diselenggarakan oleh {ORGANIZER} di {LOCATION} pada tanggal {DATE}.</textarea><div class="grid"><div><label>Upload Template Background (PNG/JPG)</label><input id="templateFile" type="file" accept="image/png,image/jpeg"></div><div><label>Upload Tanda Tangan</label><input id="signatureFile" type="file" accept="image/png,image/jpeg"></div></div><details><summary>Advanced: Layout JSON</summary><textarea id="layoutJson" placeholder="Kosong = layout default"></textarea></details><p><button id="saveCertificate">Simpan Setting Sertifikat</button> <button id="previewCertificate" class="secondary">Preview</button></p><canvas id="certificateCanvas"></canvas></div>
+    </section>
+  </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script><script src="js/config.js"></script><script src="js/supabase-client.js"></script><script src="js/certificate.js"></script><script src="js/admin.js"></script></body></html>
