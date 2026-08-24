@@ -114,6 +114,7 @@
     ctx.fillText(`No. Sertifikat: ${data.certificateNumber||'-'}`,layout.certificateNumber.x,layout.certificateNumber.y);
   }
 
+  function pdfBlob(canvas){const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});pdf.addImage(canvas.toDataURL('image/jpeg',.96),'JPEG',0,0,297,210);return pdf.output('blob')}
   function downloadPdf(canvas,filename){const {jsPDF}=window.jspdf;const pdf=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});pdf.addImage(canvas.toDataURL('image/jpeg',.96),'JPEG',0,0,297,210);pdf.save(filename||'sertifikat.pdf')}
-  window.CertificateEngine={DEFAULT_LAYOUT,renderCertificate,downloadPdf,formatDateId};
+  window.CertificateEngine={DEFAULT_LAYOUT,renderCertificate,downloadPdf,pdfBlob,formatDateId};
 })();
