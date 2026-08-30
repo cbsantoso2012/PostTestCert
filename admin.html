@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin Event Interactive V2.1</title><link rel="stylesheet" href="css/app.css"></head><body class="admin-body">
+<title>Admin Event Interactive V2.2</title><link rel="stylesheet" href="css/app.css"></head><body class="admin-body">
 <div class="app-shell wide">
-  <header class="topbar"><div><div class="eyebrow">EVENT INTERACTIVE PLATFORM</div><div class="brand">Admin Control Center <span class="version">V2.1</span></div><div class="muted">Quiz Realtime • Post-Test + Sertifikat • Assessment • Certificate Only</div></div><a class="btn ghost" href="index.html">↗ Halaman Peserta</a></header>
+  <header class="topbar"><div><div class="eyebrow">EVENT INTERACTIVE PLATFORM</div><div class="brand">Admin Control Center <span class="version">V2.2</span></div><div class="muted">Quiz Realtime • Post-Test + Sertifikat • Assessment • Certificate Only • Interactive Poll</div></div><a class="btn ghost" href="index.html">↗ Halaman Peserta</a></header>
 
   <div id="loginCard" class="panel login-panel"><div class="panel-icon">🔐</div><h2>Login Admin</h2><p class="muted">Masuk untuk mengelola event, quiz live, hasil, dan sertifikat.</p><form id="loginForm"><div class="grid"><div><label>Email</label><input id="adminEmail" type="email" required></div><div><label>Password</label><input id="adminPassword" type="password" required></div></div><p><button class="btn primary">Login</button></p></form><div id="loginMsg" class="muted"></div></div>
 
   <div id="adminApp" class="hidden">
-    <nav class="tabs panel"><button class="tab active" data-tab="events">⚙ Event</button><button class="tab" data-tab="questions">🧠 Soal</button><button class="tab" data-tab="participants">📊 Peserta & Hasil</button><button class="tab" data-tab="quizlive">🎮 Quiz Live</button><button class="tab" data-tab="certificate">🏅 Sertifikat</button><button id="logoutBtn" class="tab logout">↪ Logout</button></nav>
+    <nav class="tabs panel"><button class="tab active" data-tab="events">⚙ Event</button><button class="tab" data-tab="questions">🧠 Soal</button><button class="tab" data-tab="participants">📊 Peserta & Hasil</button><button class="tab" data-tab="quizlive">🎮 Quiz Live</button><button class="tab" data-tab="polllive">📣 Interactive Poll</button><button class="tab" data-tab="certificate">🏅 Sertifikat</button><button id="logoutBtn" class="tab logout">↪ Logout</button></nav>
 
     <section id="events" class="section active">
       <div class="panel"><div class="section-head"><div><div class="eyebrow">EVENT MANAGEMENT</div><h2>Daftar Event</h2></div><button id="newEventBtn" class="btn primary">＋ Event Baru</button></div><div class="table-wrap"><table><thead><tr><th>Kode</th><th>Mode</th><th>Nama Event</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="eventRows"></tbody></table></div></div>
@@ -15,7 +15,7 @@
       <div class="panel"><div class="section-head"><div><div class="eyebrow">EVENT SETUP</div><h2>Buat / Edit Event</h2></div><span id="modeHint" class="badge info">POST-TEST + SERTIFIKAT</span></div><form id="eventForm"><input type="hidden" id="eventId">
         <div class="grid">
           <div><label>Kode Event *</label><input id="eventCodeInput" required placeholder="OPENHOUSE-2026"></div>
-          <div><label>Mode Event *</label><select id="eventMode"><option value="QUIZ">Quiz Realtime</option><option value="POSTTEST" selected>Post-Test + Sertifikat</option><option value="ASSESSMENT">Test / Assessment Only</option><option value="CERTIFICATE">Certificate Only</option></select></div>
+          <div><label>Mode Event *</label><select id="eventMode"><option value="QUIZ">Quiz Realtime</option><option value="POSTTEST" selected>Post-Test + Sertifikat</option><option value="ASSESSMENT">Test / Assessment Only</option><option value="CERTIFICATE">Certificate Only</option><option value="POLL">Interactive Poll / Mentimeter</option></select></div>
           <div><label>Nama Event *</label><input id="eventNameInput" required></div><div><label>Judul Workshop/Training</label><input id="workshopTitle"></div>
           <div><label>Penyelenggara</label><input id="organizer"></div><div><label>Tempat</label><input id="location"></div>
           <div><label>Tanggal</label><input id="eventDate" type="date"></div><div><label>Status</label><select id="active"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
@@ -25,6 +25,7 @@
         <div id="quizConfig" class="subpanel hidden"><div class="subpanel-title"><span>🎮</span><div><h3>Quiz Realtime</h3><div class="muted small">PG/TF/SHORT, poin benar + bonus kecepatan.</div></div></div><div class="grid"><div><label>Timer per soal (detik)</label><input id="quizQuestionSeconds" type="number" min="5" max="300" value="20"></div><div><label>Poin dasar jawaban benar</label><input id="quizBasePoints" type="number" min="0" value="500"></div><div><label>Bonus kecepatan maksimum</label><input id="quizSpeedBonus" type="number" min="0" value="500"></div><div><label>Audio Host</label><select id="quizMusicEnabled"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div></div>
           <div class="security-panel"><div class="subpanel-title"><span>🛡</span><div><h3>QUIZ SECURITY MODE</h3><div class="muted small">Hanya berlaku pada Quiz Mode.</div></div></div><div class="grid"><div><label>Security Mode</label><select id="quizSecurityEnabled"><option value="true">ON</option><option value="false">OFF</option></select></div><div><label>Fullscreen wajib</label><select id="quizFullscreenRequired"><option value="true">ON</option><option value="false">OFF</option></select></div><div><label>Block Copy/Cut/Paste</label><select id="quizBlockClipboard"><option value="true">ON</option><option value="false">OFF</option></select></div><div><label>Block Klik Kanan</label><select id="quizBlockRightClick"><option value="true">ON</option><option value="false">OFF</option></select></div><div><label>Block Seleksi Teks</label><select id="quizBlockSelection"><option value="true">ON</option><option value="false">OFF</option></select></div><div><label>Deteksi Pindah Tab/Aplikasi</label><select id="quizDetectTabSwitch"><option value="true">ON</option><option value="false">OFF</option></select></div><div><label>Maksimum Pelanggaran</label><input id="quizMaxViolations" type="number" min="1" value="2"></div><div><label>Aksi saat batas tercapai</label><select id="quizViolationAction"><option value="ZERO_CURRENT">Nilai soal aktif = 0</option><option value="AUTO_FINISH">Auto Finish</option><option value="KICK">Kick Peserta</option><option value="WARNING">Warning saja</option></select></div></div><div class="notice">Browser dapat mendeteksi halaman kehilangan fokus/fullscreen, tetapi tidak dapat mendeteksi perangkat kedua.</div></div>
         </div>
+        <div id="pollConfig" class="subpanel hidden"><div class="subpanel-title"><span>📣</span><div><h3>Interactive Poll</h3><div class="muted small">Mode interaksi audiens realtime ala Mentimeter. Pertanyaan dikelola pada menu Interactive Poll.</div></div></div><div class="notice">Tipe tersedia: Multiple Choice, Word Cloud, Rating/Scale, dan Open Response. Tidak ada skor/sertifikat pada mode ini.</div></div>
         <p><button type="submit" class="btn primary">💾 Simpan Event</button></p>
       </form></div>
 
@@ -41,6 +42,28 @@
         <div id="quizHostStatus" class="host-message">Pilih event lalu buka lobby.</div>
       </div>
       <div class="host-grid"><div class="panel host-stage"><div class="host-metrics"><div><span id="hostPlayerCount">0</span><small>Peserta Join</small></div><div><span id="hostAnsweredCount">0</span><small>Sudah Menjawab</small></div><div><span id="hostQuestionMetric">0/0</span><small>Soal</small></div></div><div class="quiz-timer-big" id="hostTimer">--</div><div id="hostQuestion" class="quiz-host-question">Menunggu quiz dimulai…</div><div id="hostDistribution" class="distribution"></div></div><div class="panel"><div class="section-head"><h2>Leaderboard Realtime</h2><span class="badge live">● LIVE</span></div><ol id="hostLeaderboard" class="leaderboard host-leaderboard"></ol></div></div>
+    </section>
+
+    <section id="polllive" class="section">
+      <div class="panel"><div class="section-head"><div><div class="eyebrow">INTERACTIVE AUDIENCE</div><h2>Interactive Poll Studio</h2></div><div id="pollHostBadge" class="host-state idle">BELUM ADA SESSION</div></div>
+        <div class="grid"><div><label>Pilih Event Poll</label><select id="pollEvent"></select></div><div><label>Status</label><div id="pollHostStatus" class="host-message">Pilih event Poll lalu buka lobby.</div></div></div>
+        <div class="host-flow"><button id="openPollLobby" class="flow-btn active-step">1 <span>Buka Lobby</span></button><span>→</span><button id="pollStart" class="flow-btn" disabled>2 <span>Mulai Poll</span></button><span>→</span><button id="pollShowResults" class="flow-btn" disabled>3 <span>Tampilkan Hasil</span></button><span>→</span><button id="pollNext" class="flow-btn" disabled>4 <span>Next Question</span></button><button id="pollFinish" class="btn danger" disabled>■ Akhiri Poll</button></div>
+      </div>
+
+      <div class="host-grid">
+        <div>
+          <div class="panel"><div class="section-head"><div><div class="eyebrow">POLL QUESTIONS</div><h2>Kelola Pertanyaan</h2></div><button id="newPollQuestion" class="btn ghost" type="button">＋ Pertanyaan</button></div>
+            <input id="pollQuestionId" type="hidden">
+            <div class="grid"><div><label>Tipe</label><select id="pollQuestionType"><option value="MCQ">Multiple Choice</option><option value="WORD_CLOUD">Word Cloud</option><option value="SCALE">Rating / Scale</option><option value="OPEN_TEXT">Open Response</option></select></div><div><label>Urutan</label><input id="pollSortOrder" type="number" min="1" value="1"></div></div>
+            <label>Pertanyaan</label><textarea id="pollQuestionText" placeholder="Contoh: Satu kata yang menggambarkan AI menurut Anda?"></textarea>
+            <div id="pollOptionsWrap"><label>Pilihan (satu pilihan per baris)</label><textarea id="pollOptionsText" placeholder="ChatGPT\nGemini\nCopilot\nLainnya"></textarea></div>
+            <div id="pollScaleWrap" class="grid hidden"><div><label>Nilai Minimum</label><input id="pollScaleMin" type="number" value="1"></div><div><label>Nilai Maksimum</label><input id="pollScaleMax" type="number" value="5"></div></div>
+            <div class="button-row"><button id="savePollQuestion" class="btn primary" type="button">💾 Simpan Pertanyaan</button><button id="cancelPollQuestion" class="btn secondary" type="button">Reset</button></div>
+            <div class="table-wrap"><table><thead><tr><th>#</th><th>Tipe</th><th>Pertanyaan</th><th>Aksi</th></tr></thead><tbody id="pollQuestionRows"></tbody></table></div>
+          </div>
+        </div>
+        <div class="panel host-stage poll-host-stage"><div class="host-metrics"><div><span id="pollPlayerCount">0</span><small>Peserta Join</small></div><div><span id="pollResponseCount">0</span><small>Respons</small></div><div><span id="pollQuestionMetric">0/0</span><small>Pertanyaan</small></div></div><div id="pollHostQuestionType" class="poll-type-pill">-</div><div id="pollHostQuestion" class="quiz-host-question">Menunggu poll dimulai…</div><div id="pollHostResults" class="poll-results-host"></div></div>
+      </div>
     </section>
 
     <section id="certificate" class="section">
