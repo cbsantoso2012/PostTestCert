@@ -101,7 +101,7 @@ function renderQuizAnswerControl(q,answered){
       btn.onclick=()=>{
         const v=inp.value.trim();
         if(!v)return msg('Jawaban belum diisi.');
-        submitQuizAnswer(q.id,v);
+        submitQuizAnswer(q.id,v,btn);
       };
       inp.addEventListener('keydown',e=>{
         if(e.key==='Enter'){e.preventDefault();if(!btn.disabled)btn.click()}
@@ -119,10 +119,57 @@ function renderQuizAnswerControl(q,answered){
     </button>`).join('');
 
   $('quizOptions').querySelectorAll('button').forEach(
-    b=>b.onclick=()=>submitQuizAnswer(q.id,b.dataset.answer)
+    b=>b.onclick=()=>{
+      if(b.disabled)return;
+      $('quizOptions').querySelectorAll('button').forEach(x=>{
+        x.classList.remove('selected-answer');
+        x.querySelector('.selected-indicator')?.remove();
+      });
+      b.classList.add('selected-answer');
+      b.insertAdjacentHTML('beforeend','<span class="selected-indicator">✓ Dipilih</span>');
+      submitQuizAnswer(q.id,b.dataset.answer,b);
+    }
   );
 }
-function lockQuizAnswer(){$('quizAnswered').classList.remove('hidden');$('quizOptions').querySelectorAll('button,input').forEach(x=>x.disabled=true)}async function submitQuizAnswer(qid,ans){lockQuizAnswer();const {error}=await sb.rpc('quiz_submit_answer',{p_player_id:quizPlayerId,p_question_id:qid,p_answer:ans});if(error){msg(error.message);return}refreshQuizState()}
+function lockQuizAnswer(){$('quizAnswered').classList.remove('hidden');$('quizOptions').querySelectorAll('button,input').forEach(x=>x.disabled=true)}async function submitQuizAnswer(qid,ans,sourceEl=null){
+  if(sourceEl){
+    sourceEl.classList.add('answer-submitting');
+  }
+
+  // Keep the selected answer visible, then lock all controls.
+  lockQuizAnswer();
+
+  if($('quizAnswered')){
+    $('quizAnswered').textContent='✓ Jawaban dikirim. Menunggu hasil dari host…';
+    $('quizAnswered').classList.remove('hidden');
+  }
+
+  if($('quizShortInput') && sourceEl?.id==='quizShortSubmit'){
+    $('quizShortInput').classList.add('submitted-answer-input');
+    sourceEl.textContent='✓ Jawaban Terkirim';
+  }
+
+  const {error}=await sb.rpc('quiz_submit_answer',{
+    p_player_id:quizPlayerId,
+    p_question_id:qid,
+    p_answer:ans
+  });
+
+  if(error){
+    msg(error.message);
+    // Restore control if server rejected answer.
+    lastQuizQuestionId=null;
+    await refreshQuizState();
+    return;
+  }
+
+  if(sourceEl){
+    sourceEl.classList.remove('answer-submitting');
+    sourceEl.classList.add('answer-sent');
+  }
+
+  refreshQuizState();
+}
 function startClientQuizClock(endIso){if(clientQuizTimer)clearInterval(clientQuizTimer);const end=new Date(endIso).getTime();const tick=()=>{const ms=Math.max(0,end-Date.now());$('quizClock').textContent=Math.ceil(ms/1000);if(ms<=0){clearInterval(clientQuizTimer);clientQuizTimer=null}};tick();clientQuizTimer=setInterval(tick,200)}
 function activateQuizSecurity(){if(!currentEvent.quiz_security_enabled)return;quizSecurityActive=true;if(currentEvent.quiz_block_selection)document.body.classList.add('quiz-secure');document.addEventListener('copy',blockClipboard,true);document.addEventListener('cut',blockClipboard,true);document.addEventListener('paste',blockClipboard,true);document.addEventListener('contextmenu',blockContext,true);document.addEventListener('visibilitychange',onVisibility,true);document.addEventListener('fullscreenchange',onFullscreen,true)}function deactivateQuizSecurity(){quizSecurityActive=false;document.body.classList.remove('quiz-secure');document.removeEventListener('copy',blockClipboard,true);document.removeEventListener('cut',blockClipboard,true);document.removeEventListener('paste',blockClipboard,true);document.removeEventListener('contextmenu',blockContext,true);document.removeEventListener('visibilitychange',onVisibility,true);document.removeEventListener('fullscreenchange',onFullscreen,true)}function isShortInputTarget(t){return t?.id==='quizShortInput'}function blockClipboard(e){if(quizSecurityActive&&currentEvent.quiz_block_clipboard){e.preventDefault()}}function blockContext(e){if(quizSecurityActive&&currentEvent.quiz_block_right_click)e.preventDefault()}function onVisibility(){if(quizSecurityActive&&currentEvent.quiz_detect_tab_switch&&document.hidden)reportViolation('TAB_OR_APP_SWITCH')}function onFullscreen(){if(quizSecurityActive&&currentEvent.quiz_fullscreen_required&&!document.fullscreenElement)reportViolation('FULLSCREEN_EXIT')}async function reportViolation(type){const now=Date.now();if(now-lastViolationAt<1800)return;lastViolationAt=now;const {data,error}=await sb.rpc('quiz_report_violation',{p_player_id:quizPlayerId,p_violation_type:type,p_details:{url:location.href}});if(error)return;$('securityText').textContent=`Pelanggaran ${data.violations}/${data.max_violations}: ${type}${data.action_taken?` — ${data.action_taken}`:''}`;$('securityWarning').classList.remove('hidden');setTimeout(()=>$('securityWarning').classList.add('hidden'),4500);if(['KICK','AUTO_FINISH'].includes(data.action_taken))refreshQuizState();else if(currentEvent.quiz_fullscreen_required&&!document.fullscreenElement)setTimeout(requestFullscreen,250)}
 
