@@ -18,7 +18,85 @@ function parseTxt(text){const blocks=text.split(/#SOAL/i).slice(1),out=[];blocks
 $('parseQuestionsBtn').onclick=async()=>{const f=$('questionFile').files[0];if(!f)return alert('Pilih file TXT.');try{parsedQuestions=parseTxt(await f.text());$('questionPreview').innerHTML=`<div class="notice"><b>${parsedQuestions.length} soal terbaca.</b> Tipe: ${[...new Set(parsedQuestions.map(x=>x.question_type))].join(', ')}</div>`;$('importQuestionsBtn').disabled=!parsedQuestions.length}catch(e){alert(e.message)}};
 $('importQuestionsBtn').onclick=async()=>{const event_id=$('questionEvent').value;if(!event_id||!parsedQuestions.length)return;if(!confirm(`Import ${parsedQuestions.length} soal?`))return;const rows=parsedQuestions.map(q=>({...q,event_id}));for(let i=0;i<rows.length;i+=100){const {error}=await sb.from('questions').insert(rows.slice(i,i+100));if(error)return alert(error.message)}const n=await syncQuestionCount(event_id,true);alert(`Import berhasil. Total bank soal aktif: ${n}.`);await loadEvents();await loadQuestions()};
 async function loadQuestions(){const id=$('questionEvent').value;if(!id){$('questionRows').innerHTML='';return}const {data}=await sb.from('questions').select('*').eq('event_id',id).order('created_at');const rows=data||[];$('questionStats').textContent=`${rows.filter(x=>x.active).length} soal aktif`;$('questionRows').innerHTML=rows.map(q=>`<tr><td><span class="badge info">${esc(q.question_type)}</span></td><td>${esc(q.category||'-')}</td><td>${esc(q.question_text)}</td><td>${q.weight}</td></tr>`).join('')}$('questionEvent').onchange=loadQuestions;
-async function loadResults(){const eventId=$('participantEvent').value;if(!eventId)return;const {data,error}=await sb.from('admin_results_v21').select('*').eq('event_id',eventId).order('created_at',{ascending:false});if(error)return;currentResults=data||[];const scores=currentResults.filter(r=>r.score!=null).map(r=>Number(r.score));const avg=scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:0;const certs=currentResults.filter(r=>r.certificate_number).length;$('resultStats').innerHTML=`<div class="stat-card"><b>${currentResults.length}</b><div class="muted">Peserta</div></div><div class="stat-card"><b>${scores.length}</b><div class="muted">Selesai</div></div><div class="stat-card"><b>${avg.toFixed(1)}</b><div class="muted">Rata-rata</div></div><div class="stat-card"><b>${certs}</b><div class="muted">Sertifikat</div></div>`;$('resultRows').innerHTML=currentResults.map(r=>`<tr><td>${esc(r.participant_no||'-')}</td><td><b>${esc(r.participant_name)}</b></td><td>${esc(r.institution||'-')}</td><td>${r.score==null?'-':Math.round(r.score)}</td><td>${r.correct_count??'-'}</td><td>${esc(r.certificate_number||'-')}</td><td>${r.certificate_number?`<button class="btn ghost" onclick="reprintCertificate('${r.attempt_id}')">Reprint</button>`:'-'}</td></tr>`).join('')}$('participantEvent').onchange=loadResults;$('refreshResults').onclick=loadResults;$('exportCsv').onclick=()=>{if(!currentResults.length)return;const cols=['participant_no','participant_name','institution','email','score','correct_count','incorrect_count','certificate_number','submitted_at'];const csv=[cols.join(','),...currentResults.map(r=>cols.map(c=>`"${String(r[c]??'').replaceAll('"','""')}"`).join(','))].join('\n');downloadBlob(new Blob([csv],{type:'text/csv'}),'hasil-event.csv')};
+async function loadResults(){
+  const eventId=$('participantEvent').value;
+  if(!eventId)return;
+
+  const event=events.find(x=>x.id===eventId);
+  const {data,error}=await sb
+    .from('admin_results_v24')
+    .select('*')
+    .eq('event_id',eventId)
+    .order('created_at',{ascending:false});
+
+  if(error){
+    console.error('LOAD RESULTS ERROR:',error);
+    alert(`Gagal memuat hasil: ${error.message}`);
+    return;
+  }
+
+  currentResults=data||[];
+  const scores=currentResults.filter(r=>r.score!=null).map(r=>Number(r.score));
+  const avg=scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:0;
+  const certs=currentResults.filter(r=>r.certificate_number).length;
+  const finished=currentResults.filter(r=>['submitted','finished','certificate'].includes(String(r.result_status||'').toLowerCase())).length;
+
+  $('resultStats').innerHTML=`
+    <div class="stat-card"><b>${currentResults.length}</b><div class="muted">Peserta</div></div>
+    <div class="stat-card"><b>${finished}</b><div class="muted">Selesai</div></div>
+    <div class="stat-card"><b>${avg.toFixed(1)}</b><div class="muted">${event?.event_mode==='QUIZ'?'Rata-rata Skor':'Rata-rata Nilai'}</div></div>
+    <div class="stat-card"><b>${certs}</b><div class="muted">Sertifikat</div></div>`;
+
+  $('resultRows').innerHTML=currentResults.map(r=>`
+    <tr>
+      <td>${esc(r.participant_no||'-')}</td>
+      <td><b>${esc(r.participant_name||'-')}</b></td>
+      <td>${esc(r.institution||'-')}</td>
+      <td>${r.score==null?'-':Math.round(Number(r.score))}</td>
+      <td>${r.correct_count??'-'}</td>
+      <td>${r.incorrect_count??'-'}</td>
+      <td>${r.rank_no?`#${r.rank_no}`:'-'}</td>
+      <td>${r.violations??'-'}</td>
+      <td><span class="badge ${String(r.result_status).toLowerCase()==='finished'?'success':'gray'}">${esc(r.result_status||'-')}</span></td>
+      <td>${esc(r.certificate_number||'-')}</td>
+      <td>${r.certificate_number&&r.attempt_id?`<button class="btn ghost" onclick="reprintCertificate('${r.attempt_id}')">Reprint</button>`:'-'}</td>
+    </tr>`).join('');
+}
+
+$('participantEvent').onchange=loadResults;
+$('refreshResults').onclick=loadResults;
+
+$('exportXlsx').onclick=()=>{
+  if(!currentResults.length)return alert('Belum ada data untuk diexport.');
+
+  const event=events.find(x=>x.id===$('participantEvent').value);
+  const rows=currentResults.map((r,i)=>({
+    'No':i+1,
+    'Mode':r.event_mode||event?.event_mode||'',
+    'NIM/NIS':r.participant_no||'',
+    'Nama':r.participant_name||'',
+    'Institusi':r.institution||'',
+    'Email':r.email||'',
+    'Skor/Nilai':r.score==null?'':Number(r.score),
+    'Benar':r.correct_count??'',
+    'Salah':r.incorrect_count??'',
+    'Rank':r.rank_no??'',
+    'Pelanggaran':r.violations??'',
+    'Status':r.result_status||'',
+    'Nomor Sertifikat':r.certificate_number||'',
+    'Waktu Selesai':r.submitted_at||''
+  }));
+
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[
+    {wch:6},{wch:16},{wch:18},{wch:28},{wch:30},{wch:28},
+    {wch:13},{wch:10},{wch:10},{wch:10},{wch:14},{wch:14},{wch:28},{wch:24}
+  ];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Hasil');
+  const safe=(event?.event_code||'event').replace(/[^A-Za-z0-9_-]+/g,'_');
+  XLSX.writeFile(wb,`hasil-${safe}.xlsx`);
+};
 function fillNarrative(t,p,e,c){return String(t||'').replaceAll('{PARTICIPANT_NO}',p.participant_no||'').replaceAll('{NAME}',p.name||'').replaceAll('{INSTITUTION}',p.institution||p.school||'').replaceAll('{WORKSHOP}',e.workshop_title||e.event_name||'').replaceAll('{ORGANIZER}',e.organizer||'').replaceAll('{LOCATION}',e.location||'').replaceAll('{DATE}',CertificateEngine.formatDateId(e.event_date)).replaceAll('{CERTIFICATE_NO}',c.certificate_number||'')}
 async function certificateDataFromAttempt(attemptId){const {data:a,error}=await sb.from('attempts').select('id,event_id,participant_id').eq('id',attemptId).single();if(error)throw error;const [{data:e,error:ee},{data:p,error:pe},{data:c,error:ce}]=await Promise.all([sb.from('events').select('*').eq('id',a.event_id).single(),sb.from('participants').select('*').eq('id',a.participant_id).single(),sb.from('certificates').select('*').eq('attempt_id',a.id).single()]);if(ee||pe||ce)throw ee||pe||ce;const verify=new URL('verify.html',location.href);verify.searchParams.set('code',c.verification_code);return {templateUrl:e.certificate_template_url||'assets/template_upj_blue.png',participantName:p.name,workshopTitle:e.workshop_title||e.event_name,certificateTitle:e.certificate_title,recipientLabel:e.recipient_label,roleLabel:'Sebagai',participantRole:e.participant_role,narrative:fillNarrative(e.certificate_narrative,p,e,c),signerName:e.signer_name,signerPosition:e.signer_position,signatureUrl:e.signature_url,certificateNumber:c.certificate_number,verifyUrl:verify.href,layout:e.certificate_layout||undefined}}
 window.reprintCertificate=async id=>{try{const d=await certificateDataFromAttempt(id);$('reprintCard').classList.remove('hidden');await CertificateEngine.renderCertificate($('reprintCanvas'),d);$('downloadReprint').onclick=()=>CertificateEngine.downloadPdf($('reprintCanvas'),`${d.certificateNumber}.pdf`);$('reprintCard').scrollIntoView({behavior:'smooth'})}catch(e){alert(e.message)}};$('closeReprint').onclick=()=>$('reprintCard').classList.add('hidden');
@@ -33,9 +111,86 @@ $('hostSoundToggle').onclick=()=>{hostSoundEnabled=!hostSoundEnabled;HostAudio.e
 async function attachSelectedQuizSession(){const eventId=$('quizEvent').value;if(!eventId){quizSessionId=null;return refreshQuizHost()}const e=events.find(x=>x.id===eventId);if(e){hostSoundEnabled=e.quiz_music_enabled!==false;HostAudio.enabled=hostSoundEnabled;$('hostSoundToggle').textContent=hostSoundEnabled?'🔊 Sound ON':'🔇 Sound OFF'}const s=await getLatestQuizSession(eventId);quizSessionId=s?.id||null;await subscribeQuizHost();refreshQuizHost()}
 async function getLatestQuizSession(eventId){const {data}=await sb.from('quiz_sessions').select('*').eq('event_id',eventId).in('status',['lobby','question','reveal']).order('created_at',{ascending:false}).limit(1).maybeSingle();return data}async function subscribeQuizHost(){if(quizHostChannel){await sb.removeChannel(quizHostChannel);quizHostChannel=null}if(!quizSessionId)return;quizHostChannel=sb.channel('host-'+quizSessionId).on('postgres_changes',{event:'*',schema:'public',table:'quiz_sessions',filter:`id=eq.${quizSessionId}`},refreshQuizHost).on('postgres_changes',{event:'*',schema:'public',table:'quiz_players',filter:`session_id=eq.${quizSessionId}`},refreshQuizHost).on('postgres_changes',{event:'*',schema:'public',table:'quiz_answers',filter:`session_id=eq.${quizSessionId}`},refreshQuizHost).subscribe()}
 $('openQuizLobby').onclick=async()=>{HostAudio.ensure();const eventId=$('quizEvent').value;if(!eventId)return alert('Pilih event Quiz.');let s=await getLatestQuizSession(eventId);if(!s){const {data,error}=await sb.rpc('quiz_create_session',{p_event_id:eventId});if(error)return alert(error.message);quizSessionId=data}else quizSessionId=s.id;await subscribeQuizHost();await refreshQuizHost()};$('quizEvent').onchange=async()=>{const s=await getLatestQuizSession($('quizEvent').value);quizSessionId=s?.id||null;await subscribeQuizHost();refreshQuizHost()};
-async function hostAction(fn){if(!quizSessionId)return alert('Buka lobby terlebih dahulu.');if(fn==='quiz_host_start'){HostAudio.ensure();HostAudio.startCue()}if(fn==='quiz_host_finish'&&!confirm('Yakin ingin mengakhiri Quiz?'))return;const {error}=await sb.rpc(fn,{p_session_id:quizSessionId});if(error)return alert(error.message);if(fn==='quiz_host_reveal'){HostAudio.stopBeat();HostAudio.revealCue()}if(fn==='quiz_host_finish'){HostAudio.stopBeat();HostAudio.finishCue()}await refreshQuizHost()}$('quizStart').onclick=()=>hostAction('quiz_host_start');$('quizReveal').onclick=()=>hostAction('quiz_host_reveal');$('quizNext').onclick=()=>{HostAudio.startCue();hostAction('quiz_host_next')};$('quizFinish').onclick=()=>hostAction('quiz_host_finish');
-function setHostButtons(status,total,current){const states={lobby:{start:true},question:{reveal:true,finish:true},reveal:{next:current<total,finish:true},finished:{}};const a=states[status]||{};$('openQuizLobby').disabled=!!quizSessionId&&status!=='finished';$('quizStart').disabled=!a.start;$('quizReveal').disabled=!a.reveal;$('quizNext').disabled=!a.next;$('quizFinish').disabled=!a.finish;[['openQuizLobby',!quizSessionId||status==='finished'],['quizStart',a.start],['quizReveal',a.reveal],['quizNext',a.next]].forEach(([id,on])=>$(id).classList.toggle('active-step',!!on))}
-async function refreshQuizHost(){if(!quizSessionId){$('quizHostBadge').className='host-state idle';$('quizHostBadge').textContent='BELUM ADA SESSION';$('quizHostStatus').textContent='Pilih event lalu buka lobby.';$('hostQuestion').textContent='Menunggu quiz dimulai…';$('hostLeaderboard').innerHTML='';$('hostPlayerCount').textContent='0';$('hostAnsweredCount').textContent='0';$('hostQuestionMetric').textContent='0/0';$('hostTimer').textContent='--';setHostButtons(null,0,0);HostAudio.stopBeat();return}const {data:s,error}=await sb.rpc('quiz_get_host_state_v21',{p_session_id:quizSessionId});if(error||!s)return;const labels={lobby:'LOBBY OPEN',question:'QUESTION ACTIVE',reveal:'RESULT DISPLAYED',finished:'QUIZ FINISHED'};$('quizHostBadge').className=`host-state ${s.status}`;$('quizHostBadge').textContent=labels[s.status]||s.status.toUpperCase();$('quizHostStatus').textContent=s.status==='lobby'?'Lobby terbuka. Peserta sudah dapat join melalui QR.':s.status==='question'?'Soal aktif. Tunggu peserta menjawab atau klik Tampilkan Hasil.':s.status==='reveal'?'Hasil soal sedang ditampilkan. Klik Next Question untuk lanjut.':'Quiz selesai.';$('hostPlayerCount').textContent=s.player_count||0;$('hostAnsweredCount').textContent=s.answered_count||0;$('hostQuestionMetric').textContent=`${s.current_question_no||0}/${s.total_questions||0}`;$('hostQuestion').textContent=s.question?.question_text||'Menunggu quiz dimulai…';$('hostLeaderboard').innerHTML=(s.leaderboard||[]).map((p,i)=>`<li><span>#${i+1} ${esc(p.name)} ${p.violations?`<small>⚠${p.violations}</small>`:''}</span><b>${p.score}</b></li>`).join('');const correct=new Set((s.question?.correct_answers||[]).map(x=>String(x).toUpperCase()));$('hostDistribution').innerHTML=Object.entries(s.distribution||{}).map(([k,v])=>`<div class="dist-row ${correct.has(String(k).toUpperCase())&&s.status==='reveal'?'correct':''}"><b>${esc(k)}</b><span>${v} jawaban</span></div>`).join('');setHostButtons(s.status,s.total_questions||0,s.current_question_no||0);if(quizHostTimer)clearInterval(quizHostTimer);if(s.status==='question'&&s.question_ends_at){if(hostLastStatus!=='question')HostAudio.startBeat();const end=new Date(s.question_ends_at).getTime(),total=Math.max(1,s.question_seconds||20);const tick=()=>{const ms=Math.max(0,end-Date.now()),sec=Math.ceil(ms/1000);$('hostTimer').textContent=sec;HostAudio.intensity=Math.min(1,Math.max(0,1-ms/(total*1000)));if(ms<=0){clearInterval(quizHostTimer);quizHostTimer=null;HostAudio.stopBeat()}};tick();quizHostTimer=setInterval(tick,250)}else{$('hostTimer').textContent=s.status==='reveal'?'✓':s.status==='lobby'?'--':'END';if(s.status!=='question')HostAudio.stopBeat()}hostLastStatus=s.status}
+async function hostAction(fn){
+  if(!quizSessionId)return alert('Buka lobby terlebih dahulu.');
+
+  if(fn==='quiz_host_start'){
+    HostAudio.ensure();
+    HostAudio.startCue();
+  }
+
+  if(fn==='quiz_host_finish'){
+    if(!confirm('Akhiri Quiz dan simpan hasil akhir seluruh peserta?'))return;
+  }
+
+  const {error}=await sb.rpc(fn,{p_session_id:quizSessionId});
+  if(error)return alert(error.message);
+
+  if(fn==='quiz_host_reveal'){
+    HostAudio.stopBeat();
+    HostAudio.revealCue();
+  }
+
+  if(fn==='quiz_host_finish'){
+    HostAudio.stopBeat();
+    HostAudio.finishCue();
+
+    // Hasil quiz sudah tersimpan di quiz_players/quiz_answers.
+    // Refresh view Peserta & Hasil agar histori final langsung tersedia.
+    const quizEventId=$('quizEvent').value;
+    if(quizEventId){
+      $('participantEvent').value=quizEventId;
+      await loadResults();
+    }
+  }
+
+  await refreshQuizHost();
+}
+$('quizStart').onclick=()=>hostAction('quiz_host_start');
+$('quizReveal').onclick=()=>hostAction('quiz_host_reveal');
+$('quizNext').onclick=()=>{HostAudio.startCue();hostAction('quiz_host_next')};
+$('quizFinish').onclick=()=>hostAction('quiz_host_finish');
+function setHostButtons(status,total,current){
+  const isLast=Number(total)>0&&Number(current)>=Number(total);
+  const states={
+    lobby:{start:true},
+    question:{reveal:true,finish:true},
+    reveal:{next:!isLast,finish:true},
+    finished:{}
+  };
+  const a=states[status]||{};
+
+  $('openQuizLobby').disabled=!!quizSessionId&&status!=='finished';
+  $('quizStart').disabled=!a.start;
+  $('quizReveal').disabled=!a.reveal;
+  $('quizNext').disabled=!a.next;
+  $('quizFinish').disabled=!a.finish;
+
+  $('quizFinish').textContent=(status==='reveal'&&isLast)
+    ? '✓ Simpan & Akhiri Quiz'
+    : '■ Akhiri Quiz';
+
+  $('quizFinish').classList.toggle('final-action',status==='reveal'&&isLast);
+
+  [
+    ['openQuizLobby',!quizSessionId||status==='finished'],
+    ['quizStart',a.start],
+    ['quizReveal',a.reveal],
+    ['quizNext',a.next]
+  ].forEach(([id,on])=>$(id).classList.toggle('active-step',!!on));
+}
+
+async function refreshQuizHost(){if(!quizSessionId){$('quizHostBadge').className='host-state idle';$('quizHostBadge').textContent='BELUM ADA SESSION';$('quizHostStatus').textContent='Pilih event lalu buka lobby.';$('hostQuestion').textContent='Menunggu quiz dimulai…';$('hostLeaderboard').innerHTML='';$('hostPlayerCount').textContent='0';$('hostAnsweredCount').textContent='0';$('hostQuestionMetric').textContent='0/0';$('hostTimer').textContent='--';setHostButtons(null,0,0);HostAudio.stopBeat();return}const {data:s,error}=await sb.rpc('quiz_get_host_state_v21',{p_session_id:quizSessionId});if(error||!s)return;const labels={lobby:'LOBBY OPEN',question:'QUESTION ACTIVE',reveal:'RESULT DISPLAYED',finished:'QUIZ FINISHED'};$('quizHostBadge').className=`host-state ${s.status}`;$('quizHostBadge').textContent=labels[s.status]||s.status.toUpperCase();const isLastQuestion=Number(s.total_questions)>0&&Number(s.current_question_no)>=Number(s.total_questions);
+$('quizHostStatus').textContent=
+  s.status==='lobby'
+    ? 'Lobby terbuka. Peserta sudah dapat join melalui QR.'
+    : s.status==='question'
+      ? `Soal ${s.current_question_no}/${s.total_questions} aktif. Tunggu peserta menjawab atau klik Tampilkan Hasil.`
+      : s.status==='reveal'
+        ? (isLastQuestion
+            ? 'Ini soal terakhir. Klik Simpan & Akhiri Quiz untuk menyimpan hasil final dan menutup sesi.'
+            : 'Hasil soal sedang ditampilkan. Klik Next Question untuk lanjut.')
+        : 'Quiz selesai. Hasil final sudah tersedia di menu Peserta & Hasil.';$('hostPlayerCount').textContent=s.player_count||0;$('hostAnsweredCount').textContent=s.answered_count||0;$('hostQuestionMetric').textContent=`${s.current_question_no||0}/${s.total_questions||0}`;$('hostQuestion').textContent=s.question?.question_text||'Menunggu quiz dimulai…';$('hostLeaderboard').innerHTML=(s.leaderboard||[]).map((p,i)=>`<li><span>#${i+1} ${esc(p.name)} ${p.violations?`<small>⚠${p.violations}</small>`:''}</span><b>${p.score}</b></li>`).join('');const correct=new Set((s.question?.correct_answers||[]).map(x=>String(x).toUpperCase()));$('hostDistribution').innerHTML=Object.entries(s.distribution||{}).map(([k,v])=>`<div class="dist-row ${correct.has(String(k).toUpperCase())&&s.status==='reveal'?'correct':''}"><b>${esc(k)}</b><span>${v} jawaban</span></div>`).join('');setHostButtons(s.status,s.total_questions||0,s.current_question_no||0);if(quizHostTimer)clearInterval(quizHostTimer);if(s.status==='question'&&s.question_ends_at){if(hostLastStatus!=='question')HostAudio.startBeat();const end=new Date(s.question_ends_at).getTime(),total=Math.max(1,s.question_seconds||20);const tick=()=>{const ms=Math.max(0,end-Date.now()),sec=Math.ceil(ms/1000);$('hostTimer').textContent=sec;HostAudio.intensity=Math.min(1,Math.max(0,1-ms/(total*1000)));if(ms<=0){clearInterval(quizHostTimer);quizHostTimer=null;HostAudio.stopBeat()}};tick();quizHostTimer=setInterval(tick,250)}else{$('hostTimer').textContent=s.status==='reveal'?'✓':s.status==='lobby'?'--':'END';if(s.status!=='question')HostAudio.stopBeat()}hostLastStatus=s.status}
 setInterval(()=>{if($('quizlive').classList.contains('active')&&quizSessionId)refreshQuizHost()},2200);
 
 // INTERACTIVE POLL / MENTIMETER MODE V2.2
