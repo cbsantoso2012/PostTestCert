@@ -309,3 +309,41 @@ html,body{max-width:100%;overflow-x:hidden}
     grid-template-columns:repeat(3,minmax(0,1fr)) !important;
   }
 }
+
+/* V2.4 selected-answer feedback */
+.quiz-option-btn{
+  position:relative;
+  transition:transform .15s ease,border-color .15s ease,background .15s ease,opacity .15s ease;
+}
+.quiz-option-btn.selected-answer{
+  border:3px solid #4338ca !important;
+  background:#eef2ff !important;
+  color:#312e81 !important;
+  opacity:1 !important;
+  box-shadow:0 0 0 4px rgba(79,70,229,.13) !important;
+  transform:scale(.995);
+}
+.quiz-option-btn.selected-answer:disabled{
+  opacity:1 !important;
+}
+.quiz-option-btn:not(.selected-answer):disabled{
+  opacity:.42 !important;
+}
+.selected-indicator{
+  float:right;
+  margin-left:10px;
+  padding:5px 9px;
+  border-radius:999px;
+  background:#4338ca;
+  color:white;
+  font-size:12px;
+  font-weight:900;
+}
+.submitted-answer-input{
+  border-color:#16a34a !important;
+  background:#f0fdf4 !important;
+  color:#166534 !important;
+}
+.answer-sent{
+  opacity:1 !important;
+}
