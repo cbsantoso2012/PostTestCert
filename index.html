@@ -1,14 +1,52 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event Interactive</title><link rel="stylesheet" href="css/app.css"></head><body class="participant-body">
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Event Interactive</title><link rel="stylesheet" href="css/app.css"><link rel="stylesheet" href="css/mobile-participant-v23.css"></head><body class="participant-body">
 <div class="participant-shell"><header class="participant-header"><div><div class="eyebrow">INTERACTIVE EVENT</div><div class="brand" id="appTitle">Event Interactive</div></div><div class="event-code-pill">Kode <b id="eventCode">-</b></div></header>
 <div id="message" class="notice-card hidden"></div><div id="eventCard" class="event-hero"><div id="modeBadge" class="mode-badge"></div><h1 id="eventName">Memuat event...</h1><div id="eventMeta" class="muted"></div></div>
 <div id="identityCard" class="panel hidden"><div class="section-head"><div><div class="eyebrow">PARTICIPANT</div><h2 id="identityTitle">Identitas Peserta</h2></div></div><form id="identityForm"><div class="grid"><div><label>NIM / NIS *</label><input id="participantNo" required autocomplete="off" placeholder="Nomor induk peserta"></div><div><label>Nama lengkap *</label><input id="name" required autocomplete="name"></div><div><label>Institusi *</label><input id="institution" required placeholder="Sekolah / Universitas / Instansi"></div><div><label>Email</label><input id="email" type="email"></div><div><label>No. HP</label><input id="phone"></div></div><p><button id="identitySubmit" class="btn primary large" type="submit">Lanjutkan</button></p></form></div>
 <div id="posttestCard" class="panel hidden"><div class="test-header"><div><div class="eyebrow" id="testModeLabel">POST-TEST</div><h2 id="testTitle">Post-Test</h2><div class="progress"><div id="progressBar"></div></div><div class="small muted">Terjawab: <span id="progressText"></span></div></div><div class="timer-card"><small>WAKTU</small><b id="timer">-</b></div></div><div id="questions"></div><button id="submitBtn" class="btn primary large">Submit Test</button></div>
 <div id="quizLobby" class="quiz-screen hidden"><div class="quiz-panel glass"><div class="quiz-kicker">QUIZ ARENA</div><h1>Siap bermain?</h1><div class="player-name" id="quizPlayerName"></div><div class="lobby-count"><span id="quizLobbyCount">0</span><small>pemain sudah join</small></div><p>Menunggu host memulai quiz…</p><div class="pulse-dots"><i></i><i></i><i></i></div></div></div>
-<div id="quizPlay" class="quiz-screen hidden"><div class="quiz-topbar"><div>Soal <b id="quizQuestionNo">-</b></div><div class="quiz-score-pill">Skor <b id="quizScore">0</b></div><div class="quiz-clock" id="quizClock">20</div></div><div class="quiz-question-text" id="quizQuestionText"></div><div id="quizOptions" class="quiz-options"></div><div id="quizAnswered" class="quiz-answered hidden">✓ Jawaban terkunci. Tunggu hasil dari host…</div></div>
+<div id="quizPlay" class="quiz-screen hidden participant-mobile-stage">
+  <div class="mobile-stage-shell">
+    <div class="mobile-stage-header">
+      <div>
+        <div class="stage-eyebrow">QUIZ LIVE</div>
+        <div class="stage-progress-text">Pertanyaan <b id="quizQuestionNo">-</b></div>
+      </div>
+      <div class="stage-header-actions">
+        <div class="quiz-score-pill">Skor <b id="quizScore">0</b></div>
+        <div class="quiz-clock" id="quizClock">20</div>
+      </div>
+    </div>
+    <div class="stage-progress-track"><div id="quizQuestionProgress" class="stage-progress-fill"></div></div>
+    <div class="mobile-question-card">
+      <div id="quizQuestionType" class="question-type-chip">QUIZ</div>
+      <div class="quiz-question-text mobile-question-text" id="quizQuestionText"></div>
+      <div id="quizInstruction" class="question-instruction">Pilih jawaban yang paling tepat.</div>
+      <div id="quizOptions" class="quiz-options mobile-answer-area"></div>
+      <div id="quizAnswered" class="answer-state success hidden">✓ Jawaban sudah terkunci. Tunggu host menampilkan hasil.</div>
+    </div>
+  </div>
+</div>
 <div id="quizReveal" class="quiz-screen hidden"><div class="quiz-panel glass"><div id="quizRevealIcon" class="reveal-icon">✓</div><h1 id="quizRevealTitle">Benar!</h1><div class="points-pop" id="quizPoints">+0</div><div>Skor total: <b id="quizRevealScore">0</b></div><div>Posisi: <b id="quizRank">-</b></div><ol id="quizMiniLeaderboard" class="leaderboard"></ol></div></div>
 <div id="quizFinished" class="quiz-screen hidden"><div class="quiz-panel glass"><div class="quiz-kicker">FINAL RESULT</div><h1>Quiz Selesai</h1><div class="podium-rank" id="finalRank">#-</div><div class="points-pop" id="finalScore">0 poin</div><ol id="finalLeaderboard" class="leaderboard"></ol></div></div>
 <div id="pollLobby" class="poll-screen hidden"><div class="poll-panel"><div class="poll-kicker">LIVE INTERACTION</div><h1>Anda sudah bergabung</h1><div class="player-name" id="pollParticipantName"></div><div class="lobby-count"><span id="pollLobbyCount">0</span><small>peserta sudah join</small></div><p>Menunggu host memulai sesi…</p><div class="pulse-dots"><i></i><i></i><i></i></div></div></div>
-<div id="pollPlay" class="poll-screen hidden"><div class="poll-topbar"><div>Pertanyaan <b id="pollQuestionNo">-</b></div><div id="pollTypeBadge" class="poll-type-pill">POLL</div></div><div class="poll-question-text" id="pollQuestionText"></div><div id="pollAnswerArea" class="poll-answer-area"></div><div id="pollAnswered" class="quiz-answered hidden">✓ Respons terkirim. Tunggu host menampilkan hasil…</div></div>
+<div id="pollPlay" class="poll-screen hidden participant-mobile-stage">
+  <div class="mobile-stage-shell">
+    <div class="mobile-stage-header">
+      <div>
+        <div class="stage-eyebrow">INTERACTIVE POLL</div>
+        <div class="stage-progress-text">Pertanyaan <b id="pollQuestionNo">-</b></div>
+      </div>
+      <div id="pollTypeBadge" class="question-type-chip">POLL</div>
+    </div>
+    <div class="stage-progress-track"><div id="pollQuestionProgress" class="stage-progress-fill"></div></div>
+    <div class="mobile-question-card">
+      <div class="poll-question-text mobile-question-text" id="pollQuestionText"></div>
+      <div id="pollInstruction" class="question-instruction">Silakan berikan respons Anda.</div>
+      <div id="pollAnswerArea" class="poll-answer-area mobile-answer-area"></div>
+      <div id="pollAnswered" class="answer-state success hidden">✓ Respons berhasil dikirim. Tunggu host menampilkan hasil.</div>
+    </div>
+  </div>
+</div>
 <div id="pollResults" class="poll-screen hidden"><div class="poll-panel wide"><div class="poll-kicker">LIVE RESULT</div><h1 id="pollResultQuestion">Hasil</h1><div id="pollParticipantResults" class="poll-results-participant"></div><p class="muted-light">Menunggu host melanjutkan pertanyaan berikutnya…</p></div></div>
 <div id="pollFinished" class="poll-screen hidden"><div class="poll-panel"><div class="poll-kicker">THANK YOU</div><h1>Sesi Interaktif Selesai</h1><p>Terima kasih atas partisipasi Anda.</p></div></div>
 <div id="securityWarning" class="security-warning hidden"><b>⚠ Quiz Security</b><div id="securityText"></div></div>
